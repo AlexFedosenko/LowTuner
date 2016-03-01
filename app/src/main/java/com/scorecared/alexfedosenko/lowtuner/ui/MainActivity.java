@@ -13,24 +13,28 @@ import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
+    private AudioReceiver mAudioReceiver;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mAudioReceiver = new AudioReceiver();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (getMicrophoneAvailable(this)) {
-            AudioReceiver.start();
-        }
+//        if (getMicrophoneAvailable(this)) {
+            mAudioReceiver.start();
+//        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        AudioReceiver.stop();
+        mAudioReceiver.stop();
     }
 
     public static boolean getMicrophoneAvailable(Context context) {

@@ -1,5 +1,7 @@
 package com.scorecared.alexfedosenko.lowtuner;
 
+import android.content.Context;
+import android.content.res.Resources;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
@@ -11,22 +13,60 @@ import org.apache.commons.math3.complex.Complex;
 public class AudioReceiver {
 
     private static final String TAG = "AudioReceiver";
-    private static final AsyncTask<Void, Double, Void> mAudioTask = new AsyncTask<Void, Double, Void>() {
+
+    private static final int MAXIMA = 8;
+    private static final int OVERSAMPLE = 16;
+    private static final int SAMPLES = 16384;
+    private static final int RANGE = SAMPLES * 3 / 8;
+    private static final int STEP = SAMPLES / OVERSAMPLE;
+    private static final int SIZE = 4096;
+
+    private static final int OCTAVE = 12;
+    private static final int C5_OFFSET = 57;
+    private static final long TIMER_COUNT = 24;
+    private static final double MIN = 0.5;
+
+    private static final double G = 3.023332184e+01;
+    private static final double K = 0.9338478249;
+
+    private final Context mContext;
+
+    private double xv[];
+    private double yv[];
+
+    private double buffer[];
+    private short data[];
+    private int sample;
+
+    private Complex[] x;
+
+    private double xp[];
+    private double xf[];
+    private double dx[];
+
+    public AudioReceiver(Context context) {
+        mContext = context;
+    }
+
+    private final AsyncTask<Void, Double, Void> mAudioTask = new AsyncTask<Void, Double, Void>() {
         @Override
         protected Void doInBackground(Void... params) {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
-            AudioRecord record = findAudioRecord();
-            record.startRecording();
-            byte[][] buffers = new byte[256][8192];
-            int ix = 0;
-
-            do {
-                byte[] buffer = buffers[ix++ % buffers.length];
-                record.read(buffer, 0, buffer.length);
-                calculateFFT(buffer);
-            } while (!isCancelled());
-            record.stop();
-            record.release();
+            Resources resources = mContext.getResources();
+            int rates[] = resources.getIntArray(R.array.sample_rates);
+            int divisors[] = resources.getIntArray(R.array.divisors);
+//            AudioRecord record = findAudioRecord();
+//            record.startRecording();
+//            byte[][] buffers = new byte[256][8192];
+//            int ix = 0;
+//
+//            do {
+//                byte[] buffer = buffers[ix++ % buffers.length];
+//                record.read(data, 0, buffer.length);
+//                calculateFFT(buffer);
+//            } while (!isCancelled());
+//            record.stop();
+//            record.release();
             return null;
         }
 
@@ -96,6 +136,52 @@ public class AudioReceiver {
 
             return y;
 
+        }
+
+        private void fftr(Complex[] a)
+        {
+            final int n = a.length;
+            final double norm = Math.sqrt(1.0 / n);
+
+            for (int i = 0, j = 0; i < n; i++)
+            {
+                if (j >= i)
+                {
+                    double tr = a[j].getReal() * norm;
+
+                    a[j] = new Complex(a[i].getReal() * norm, 0.0);
+                    a[j] = new Complex(tr, 0.0);
+                }
+
+                int m = n / 2;
+                while (m >= 1 && j >= m)
+                {
+                    j -= m;
+                    m /= 2;
+                }
+                j += m;
+            }
+
+            for (int mmax = 1, istep = 2 * mmax; mmax < n;
+                 mmax = istep, istep = 2 * mmax)
+            {
+                double delta = (Math.PI / mmax);
+                for (int m = 0; m < mmax; m++)
+                {
+                    double w = m * delta;
+                    double wr = Math.cos(w);
+                    double wi = Math.sin(w);
+
+                    for (int i = m; i < n; i += istep)
+                    {
+                        int j = i + mmax;
+                        double tr = wr * a[j].getReal() - wi * a[j].getImaginary();
+                        double ti = wr * a[j].getImaginary() + wi * a[j].getReal();
+                        a[j] = new Complex(a[i].getReal() - tr, a[i].getImaginary() - ti);
+                        a[i] = new Complex(a[i].getReal() + tr, a[i].getImaginary() + ti);
+                    }
+                }
+            }
         }
 
         public double gausse(double n, double frameSize)
@@ -239,11 +325,11 @@ public class AudioReceiver {
         }
     };
 
-    public static void start() {
+    public void start() {
         mAudioTask.execute();
     }
 
-    public static void stop() {
+    public void stop() {
         mAudioTask.cancel(true);
     }
 }
