@@ -55,25 +55,26 @@ public class AudioReceiver {
             Resources resources = mContext.getResources();
             int rates[] = resources.getIntArray(R.array.sample_rates);
             int divisors[] = resources.getIntArray(R.array.divisors);
-//            AudioRecord record = findAudioRecord();
-//            record.startRecording();
-//            byte[][] buffers = new byte[256][8192];
-//            int ix = 0;
-//
-//            do {
-//                byte[] buffer = buffers[ix++ % buffers.length];
-//                record.read(data, 0, buffer.length);
-//                calculateFFT(buffer);
-//            } while (!isCancelled());
-//            record.stop();
-//            record.release();
+            AudioRecord record = findAudioRecord();
+            record.startRecording();
+            byte[][] buffers = new byte[256][8192];
+            int ix = 0;
+
+            do {
+                byte[] buffer = buffers[ix++ % buffers.length];
+                data = new short[buffer.length];
+                record.read(data, 0, buffer.length);
+                calculateFFT(buffer);
+            } while (!isCancelled());
+            record.stop();
+            record.release();
             return null;
         }
 
         private int[] mSampleRates = new int[] { 44100, 22050, 11025, 8000 };
         public AudioRecord findAudioRecord() {
             for (int rate : mSampleRates) {
-                for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT }) {
+                for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_16BIT, AudioFormat.ENCODING_PCM_8BIT }) {
                     for (short channelConfig : new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO }) {
                         try {
                             Log.d(TAG, "Attempting rate " + rate + "Hz, bits: " + audioFormat + ", channel: "
@@ -112,7 +113,7 @@ public class AudioReceiver {
                 complexSignal[i] = new Complex(temp,0.0);
             }
 
-            y = gaus(fft(complexSignal, true));
+//            y = fft(complexSignal, true);
 //            y = FFT.fft(complexSignal); // --> Here I use FFT class
 
             mMaxFFTSample = 0.0;
@@ -184,7 +185,7 @@ public class AudioReceiver {
             }
         }
 
-        public double gausse(double n, double frameSize)
+        private double gausse(double n, double frameSize)
         {
             double a = (frameSize - 1)/2;
             double t = (n - a)/(0.5*a);
@@ -326,6 +327,7 @@ public class AudioReceiver {
     };
 
     public void start() {
+
         mAudioTask.execute();
     }
 

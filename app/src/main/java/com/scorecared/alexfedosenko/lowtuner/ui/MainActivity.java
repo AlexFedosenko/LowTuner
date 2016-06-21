@@ -20,15 +20,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAudioReceiver = new AudioReceiver();
+        mAudioReceiver = new AudioReceiver(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-//        if (getMicrophoneAvailable(this)) {
+        if (getMicrophoneAvailable(this)) {
             mAudioReceiver.start();
-//        }
+        }
     }
 
     @Override
@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static boolean getMicrophoneAvailable(Context context) {
         MediaRecorder recorder = new MediaRecorder();
-        recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION);
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
         recorder.setOutputFile(new File(context.getCacheDir(), "MediaUtil#micAvailTestFile").getAbsolutePath());
