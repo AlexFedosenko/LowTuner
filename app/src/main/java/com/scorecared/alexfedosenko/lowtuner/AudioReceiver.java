@@ -7,10 +7,16 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.apache.commons.math3.complex.Complex;
 
 public class AudioReceiver {
+
+    static {
+        System.loadLibrary("low-tuner-jni");
+    }
+    public native String fftJni();
 
     private static final String TAG = "AudioReceiver";
 
@@ -49,6 +55,11 @@ public class AudioReceiver {
     }
 
     private final AsyncTask<Void, Double, Void> mAudioTask = new AsyncTask<Void, Double, Void>() {
+        @Override
+        protected void onPreExecute() {
+            Toast.makeText(mContext, fftJni(), Toast.LENGTH_LONG).show();
+        }
+
         @Override
         protected Void doInBackground(Void... params) {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
@@ -113,6 +124,7 @@ public class AudioReceiver {
                 complexSignal[i] = new Complex(temp,0.0);
             }
 
+            y = new double[1];
 //            y = fft(complexSignal, true);
 //            y = FFT.fft(complexSignal); // --> Here I use FFT class
 
